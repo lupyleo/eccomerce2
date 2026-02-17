@@ -21,10 +21,8 @@ export default function Header() {
   const { itemCount, fetchCart } = useCartStore();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchCart();
-    }
-  }, [isAuthenticated, fetchCart]);
+    fetchCart();
+  }, [fetchCart]);
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">

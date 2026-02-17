@@ -30,6 +30,7 @@
 .claude/
 docs/.bkit-memory.json
 docs/.pdca-status.json
+docs/.pdca-snapshots/
 
 # debug
 npm-debug.log*

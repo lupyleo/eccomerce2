@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { apiHandler, successResponse } from '@/lib/api-handler';
-import { requireAuth } from '@/lib/auth-guard';
+import { getCartIdentity, cartWhereClause, cartCreateData } from '@/lib/cart-identity';
 import { AppError } from '@/lib/errors';
 
 const addToCartSchema = z.object({
@@ -11,7 +11,7 @@ const addToCartSchema = z.object({
 });
 
 export const POST = apiHandler(async (req: NextRequest) => {
-  const session = await requireAuth();
+  const identity = await getCartIdentity(req);
   const body = await req.json();
   const { variantId, quantity } = addToCartSchema.parse(body);
 
@@ -38,9 +38,9 @@ export const POST = apiHandler(async (req: NextRequest) => {
   }
 
   // Get or create cart
-  let cart = await prisma.cart.findUnique({ where: { userId: session.user.id } });
+  let cart = await prisma.cart.findUnique({ where: cartWhereClause(identity) });
   if (!cart) {
-    cart = await prisma.cart.create({ data: { userId: session.user.id } });
+    cart = await prisma.cart.create({ data: cartCreateData(identity) });
   }
 
   // Upsert cart item

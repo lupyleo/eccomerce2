@@ -3,6 +3,7 @@
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import { useCartStore } from './useCart';
 
 export function useAuth() {
   const { data: session, status } = useSession();
@@ -27,6 +28,8 @@ export function useAuth() {
       if (result?.error) {
         throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
       }
+      // Merge guest cart into authenticated user's cart
+      await useCartStore.getState().mergeGuestCart();
       router.refresh();
     },
     [router],
@@ -34,6 +37,7 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     await signOut({ redirect: false });
+    useCartStore.getState().clearSessionId();
     router.push('/');
     router.refresh();
   }, [router]);

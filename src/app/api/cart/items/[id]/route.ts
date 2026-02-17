@@ -2,31 +2,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { successResponse } from '@/lib/api-handler';
-import { requireAuth } from '@/lib/auth-guard';
+import { getCartIdentity } from '@/lib/cart-identity';
 import { AppError, NotFoundError } from '@/lib/errors';
 
 const updateQuantitySchema = z.object({
   quantity: z.number().int().min(1),
 });
 
+async function verifyCartItemOwnership(itemId: string, req: NextRequest) {
+  const identity = await getCartIdentity(req);
+  const cartItem = await prisma.cartItem.findUnique({
+    where: { id: itemId },
+    include: { cart: true, variant: true },
+  });
+
+  if (!cartItem) {
+    throw new NotFoundError('장바구니 항목');
+  }
+
+  const isOwner =
+    identity.type === 'user'
+      ? cartItem.cart.userId === identity.userId
+      : cartItem.cart.sessionId === identity.sessionId;
+
+  if (!isOwner) {
+    throw new NotFoundError('장바구니 항목');
+  }
+
+  return cartItem;
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireAuth();
     const { id } = await params;
     const body = await req.json();
     const { quantity } = updateQuantitySchema.parse(body);
 
-    const cartItem = await prisma.cartItem.findUnique({
-      where: { id },
-      include: { cart: true, variant: true },
-    });
-
-    if (!cartItem || cartItem.cart.userId !== session.user.id) {
-      throw new NotFoundError('장바구니 항목');
-    }
+    const cartItem = await verifyCartItemOwnership(id, req);
 
     const availableStock = cartItem.variant.stock - cartItem.variant.reservedStock;
     if (quantity > availableStock) {
@@ -57,21 +72,13 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireAuth();
     const { id } = await params;
 
-    const cartItem = await prisma.cartItem.findUnique({
-      where: { id },
-      include: { cart: true },
-    });
-
-    if (!cartItem || cartItem.cart.userId !== session.user.id) {
-      throw new NotFoundError('장바구니 항목');
-    }
+    await verifyCartItemOwnership(id, req);
 
     await prisma.cartItem.delete({ where: { id } });
 

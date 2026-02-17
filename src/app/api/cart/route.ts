@@ -1,12 +1,13 @@
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiHandler, successResponse } from '@/lib/api-handler';
-import { requireAuth } from '@/lib/auth-guard';
+import { getCartIdentity, cartWhereClause } from '@/lib/cart-identity';
 
-export const GET = apiHandler(async () => {
-  const session = await requireAuth();
+export const GET = apiHandler(async (req: NextRequest) => {
+  const identity = await getCartIdentity(req);
 
   const cart = await prisma.cart.findUnique({
-    where: { userId: session.user.id },
+    where: cartWhereClause(identity),
     include: {
       items: {
         include: {

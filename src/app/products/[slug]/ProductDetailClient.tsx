@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { formatPrice } from '@/lib/utils';
 import VariantSelector from '@/components/product/VariantSelector';
+import { useCartStore } from '@/presentation/hooks/useCart';
 
 interface Variant {
   id: string;
@@ -51,29 +52,18 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const isSoldOut = product.status === 'SOLD_OUT';
   const isVariantSoldOut = selectedVariant && selectedVariant.availableStock <= 0;
 
+  const { addItem } = useCartStore();
+
   const handleAddToCart = async () => {
     if (!selectedVariant) return;
     setIsAddingToCart(true);
     setCartMessage(null);
 
     try {
-      const res = await fetch('/api/cart/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          variantId: selectedVariant.id,
-          quantity,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setCartMessage({ type: 'success', text: '장바구니에 추가되었습니다.' });
-      } else {
-        setCartMessage({ type: 'error', text: data.error?.message ?? '장바구니 추가에 실패했습니다.' });
-      }
-    } catch {
-      setCartMessage({ type: 'error', text: '네트워크 오류가 발생했습니다.' });
+      await addItem(selectedVariant.id, quantity);
+      setCartMessage({ type: 'success', text: '장바구니에 추가되었습니다.' });
+    } catch (err) {
+      setCartMessage({ type: 'error', text: err instanceof Error ? err.message : '장바구니 추가에 실패했습니다.' });
     } finally {
       setIsAddingToCart(false);
     }
