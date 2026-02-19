@@ -15,9 +15,11 @@ export const GET = apiHandler(async () => {
     pendingOrders,
     pendingReturns,
     lowStockVariants,
-    recentOrders,
+    recentSalesOrders,
+    recentOrdersList,
     topProducts,
     orderStatusCounts,
+    totalUsers,
   ] = await Promise.all([
     prisma.order.findMany({
       where: { createdAt: { gte: today }, status: { not: 'CANCELLED' } },
@@ -35,6 +37,17 @@ export const GET = apiHandler(async () => {
       },
       select: { finalAmount: true, createdAt: true },
     }),
+    prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        finalAmount: true,
+        createdAt: true,
+      },
+    }),
     prisma.product.findMany({
       orderBy: { salesCount: 'desc' },
       take: 10,
@@ -49,13 +62,14 @@ export const GET = apiHandler(async () => {
       by: ['status'],
       _count: true,
     }),
+    prisma.user.count(),
   ]);
 
   const todaySales = todayOrders.reduce((sum, o) => sum + Number(o.finalAmount), 0);
 
   // Aggregate daily sales for last 30 days
   const dailySalesMap = new Map<string, number>();
-  for (const order of recentOrders) {
+  for (const order of recentSalesOrders) {
     const dateKey = order.createdAt.toISOString().slice(0, 10);
     dailySalesMap.set(dateKey, (dailySalesMap.get(dateKey) ?? 0) + Number(order.finalAmount));
   }
@@ -70,6 +84,7 @@ export const GET = apiHandler(async () => {
   return successResponse({
     todaySales,
     todayOrders: todayOrders.length,
+    totalUsers,
     pendingOrders,
     pendingReturns,
     lowStockVariants,
@@ -81,5 +96,12 @@ export const GET = apiHandler(async () => {
       revenue: p.salesCount * Number(p.basePrice),
     })),
     orderStatusSummary,
+    recentOrders: recentOrdersList.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      status: o.status,
+      finalAmount: Number(o.finalAmount),
+      createdAt: o.createdAt.toISOString(),
+    })),
   });
 });

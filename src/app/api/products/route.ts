@@ -17,35 +17,39 @@ export const GET = apiHandler(async (req: NextRequest) => {
   const search = searchParams.get('search');
   const sort = searchParams.get('sort') ?? 'newest';
 
-  const where: Prisma.ProductWhereInput = {
-    status: 'ACTIVE',
-    ...(category && { category: { slug: category } }),
-    ...(brand && { brand: { slug: brand } }),
-    ...(minPrice && { basePrice: { gte: Number(minPrice) } }),
-    ...(maxPrice && { basePrice: { lte: Number(maxPrice) } }),
-    ...(sizes && {
-      variants: {
-        some: {
-          size: { in: sizes.split(',') },
-          isActive: true,
-        },
-      },
-    }),
-    ...(colors && {
-      variants: {
-        some: {
-          color: { in: colors.split(',') },
-          isActive: true,
-        },
-      },
-    }),
-    ...(search && {
+  const andConditions: Prisma.ProductWhereInput[] = [{ status: 'ACTIVE' }];
+
+  if (category) {
+    andConditions.push({
+      OR: [
+        { category: { slug: category } },
+        { category: { parent: { slug: category } } },
+      ],
+    });
+  }
+  if (brand) andConditions.push({ brand: { slug: brand } });
+  if (minPrice) andConditions.push({ basePrice: { gte: Number(minPrice) } });
+  if (maxPrice) andConditions.push({ basePrice: { lte: Number(maxPrice) } });
+  if (sizes) {
+    andConditions.push({
+      variants: { some: { size: { in: sizes.split(',') }, isActive: true } },
+    });
+  }
+  if (colors) {
+    andConditions.push({
+      variants: { some: { color: { in: colors.split(',') }, isActive: true } },
+    });
+  }
+  if (search) {
+    andConditions.push({
       OR: [
         { name: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
       ],
-    }),
-  };
+    });
+  }
+
+  const where: Prisma.ProductWhereInput = { AND: andConditions };
 
   const orderBy: Prisma.ProductOrderByWithRelationInput = (() => {
     switch (sort) {

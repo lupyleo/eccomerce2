@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 
 interface DashboardData {
-  totalRevenue: number;
-  totalOrders: number;
+  todaySales: number;
+  todayOrders: number;
   totalUsers: number;
   pendingOrders: number;
+  pendingReturns: number;
   recentOrders: Array<{
     id: string;
     orderNumber: string;
@@ -33,9 +34,9 @@ export default function AdminDashboardPage() {
   if (!data) return <div className="text-center py-12 text-red-500">데이터를 불러올 수 없습니다.</div>;
 
   const stats = [
-    { label: '총 매출', value: `${data.totalRevenue.toLocaleString()}원` },
-    { label: '총 주문', value: `${data.totalOrders}건` },
-    { label: '총 회원', value: `${data.totalUsers}명` },
+    { label: '오늘 매출', value: `${data.todaySales.toLocaleString()}원` },
+    { label: '오늘 주문', value: `${data.todayOrders}건` },
+    { label: '총 회원', value: `${data.totalUsers.toLocaleString()}명` },
     { label: '처리 대기', value: `${data.pendingOrders}건` },
   ];
 
