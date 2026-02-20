@@ -1,6 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
+import { useSession } from 'next-auth/react';
+import { useEffect, useRef } from 'react';
 
 interface CartItem {
   id: string;
@@ -155,3 +157,27 @@ export const useCartStore = create<CartStore>((set) => ({
     }
   },
 }));
+
+/**
+ * Hook that detects session changes and auto-merges guest cart.
+ * Handles social login redirect where mergeGuestCart() can't be called inline.
+ * Should be rendered once in a top-level provider component.
+ */
+export function useCartSessionSync() {
+  const { data: session } = useSession();
+  const prevUserIdRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    const userId = session?.user?.id as string | undefined;
+
+    // Detect transition from no user to authenticated user
+    if (userId && !prevUserIdRef.current) {
+      const sessionId = localStorage.getItem('guest_session_id');
+      if (sessionId) {
+        useCartStore.getState().mergeGuestCart();
+      }
+    }
+
+    prevUserIdRef.current = userId;
+  }, [session?.user?.id]);
+}

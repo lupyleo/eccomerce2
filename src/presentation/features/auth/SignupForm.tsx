@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/presentation/hooks/useAuth';
 import { Button, Input } from '@/presentation/components/ui';
 import { Alert, AlertDescription } from '@/presentation/components/ui';
+import SocialLoginButtons from './SocialLoginButtons';
 
 const signupSchema = z
   .object({
@@ -75,6 +76,17 @@ export default function SignupForm() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
+      <SocialLoginButtons callbackUrl="/" />
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">또는 이메일로 가입</span>
+        </div>
+      </div>
 
       <Input
         id="name"

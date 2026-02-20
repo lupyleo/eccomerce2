@@ -2,24 +2,34 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import Kakao from 'next-auth/providers/kakao';
+import Naver from 'next-auth/providers/naver';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  debug: process.env.NODE_ENV === 'development',
   adapter: PrismaAdapter(prisma),
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/auth/login',
+    error: '/auth/error',
   },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
     Kakao({
       clientId: process.env.KAKAO_CLIENT_ID!,
       clientSecret: process.env.KAKAO_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+    }),
+    Naver({
+      clientId: process.env.NAVER_CLIENT_ID!,
+      clientSecret: process.env.NAVER_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
       name: 'credentials',
